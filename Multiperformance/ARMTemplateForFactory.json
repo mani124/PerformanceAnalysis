@@ -1,0 +1,535 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "Multiperformance"
+		},
+		"PerformanceLS_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'PerformanceLS'"
+		},
+		"PerformanceLS_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://performanceanalysis202.dfs.core.windows.net/"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Performance')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "PerformanceAnalysis",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SlaesPerformance": {},
+									"MarketingPerformance": {},
+									"Employee": {},
+									"DepartmentType": {},
+									"Output": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-15T11:41:23Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DepartmentTargetDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "PerformanceLS",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "depratments_targets.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Department",
+						"type": "String"
+					},
+					{
+						"name": "Month",
+						"type": "String"
+					},
+					{
+						"name": "Target_Type",
+						"type": "String"
+					},
+					{
+						"name": "Target_Value",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/PerformanceLS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EmployeeDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "PerformanceLS",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "employee_master.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "EmployeeID",
+						"type": "String"
+					},
+					{
+						"name": "FirstName",
+						"type": "String"
+					},
+					{
+						"name": "LastName",
+						"type": "String"
+					},
+					{
+						"name": "HireDate",
+						"type": "String"
+					},
+					{
+						"name": "Status",
+						"type": "String"
+					},
+					{
+						"name": "ManagerID",
+						"type": "String"
+					},
+					{
+						"name": "Location",
+						"type": "String"
+					},
+					{
+						"name": "Department",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/PerformanceLS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MarketingPerformanceDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "PerformanceLS",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "marketing_Performance.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "EmployeeID",
+						"type": "String"
+					},
+					{
+						"name": "Month",
+						"type": "String"
+					},
+					{
+						"name": "Metric",
+						"type": "String"
+					},
+					{
+						"name": "Value",
+						"type": "String"
+					},
+					{
+						"name": "Department",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/PerformanceLS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OutputDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "PerformanceLS",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileSystem": "sink"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/PerformanceLS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SalesPerformanceDs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "PerformanceLS",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "sales_Performace.csv",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "EmployeeID",
+						"type": "String"
+					},
+					{
+						"name": "Month",
+						"type": "String"
+					},
+					{
+						"name": "Metric",
+						"type": "String"
+					},
+					{
+						"name": "Value",
+						"type": "String"
+					},
+					{
+						"name": "Department",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/PerformanceLS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PerformanceLS')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('PerformanceLS_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('PerformanceLS_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "SalesPerformanceDs",
+								"type": "DatasetReference"
+							},
+							"name": "SlaesPerformance"
+						},
+						{
+							"dataset": {
+								"referenceName": "MarketingPerformanceDs",
+								"type": "DatasetReference"
+							},
+							"name": "MarketingPerformance"
+						},
+						{
+							"dataset": {
+								"referenceName": "EmployeeDs",
+								"type": "DatasetReference"
+							},
+							"name": "Employee"
+						},
+						{
+							"dataset": {
+								"referenceName": "DepartmentTargetDs",
+								"type": "DatasetReference"
+							},
+							"name": "DepartmentType"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "OutputDs",
+								"type": "DatasetReference"
+							},
+							"name": "Output"
+						}
+					],
+					"transformations": [
+						{
+							"name": "CombineData"
+						},
+						{
+							"name": "EmployeeDetails"
+						},
+						{
+							"name": "ActiveEmployees"
+						},
+						{
+							"name": "pivot1"
+						},
+						{
+							"name": "MapDrifted1",
+							"description": "Creates an explicit mapping for each drifted column"
+						},
+						{
+							"name": "lookup1"
+						},
+						{
+							"name": "NormalizeNumericDataType"
+						},
+						{
+							"name": "CalculateRatios"
+						},
+						{
+							"name": "FullName"
+						},
+						{
+							"name": "PerformanceScore"
+						},
+						{
+							"name": "PerformanceLevel"
+						},
+						{
+							"name": "window1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          EmployeeID as string,",
+						"          Month as string,",
+						"          Metric as string,",
+						"          Value as decimal(10,0),",
+						"          Department as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SlaesPerformance",
+						"source(output(",
+						"          EmployeeID as string,",
+						"          Month as string,",
+						"          Metric as string,",
+						"          Value as decimal(10,0),",
+						"          Department as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> MarketingPerformance",
+						"source(output(",
+						"          EmployeeID as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          HireDate as string,",
+						"          Status as string,",
+						"          ManagerID as string,",
+						"          Location as string,",
+						"          Department as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> Employee",
+						"source(output(",
+						"          Department as string,",
+						"          Month as string,",
+						"          Target_Type as string,",
+						"          Target_Value as decimal(10,0)",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> DepartmentType",
+						"SlaesPerformance, MarketingPerformance union(byName: true)~> CombineData",
+						"CombineData, Employee lookup(CombineData@EmployeeID == Employee@EmployeeID,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> EmployeeDetails",
+						"EmployeeDetails filter(Status=='Active') ~> ActiveEmployees",
+						"FullName pivot(groupBy(CombineData@EmployeeID,",
+						"          FullName,",
+						"          CombineData@Department,",
+						"          Month),",
+						"     pivotBy(Metric),",
+						"     {} = sum(Value),",
+						"     columnNaming: '$N$V',",
+						"     lateral: true) ~> pivot1",
+						"pivot1 derive(Calls_Made = toDecimal(byName('Calls_Made')),",
+						"          Campaign_ROI = toDecimal(byName('Campaign_ROI')),",
+						"          Content_Created = toDecimal(byName('Content_Created')),",
+						"          Deals_Closed = toDecimal(byName('Deals_Closed')),",
+						"          Leads_Generated = toDecimal(byName('Leads_Generated')),",
+						"          Revenue = toDecimal(byName('Revenue'))) ~> MapDrifted1",
+						"MapDrifted1, DepartmentType lookup(pivot1@Department == DepartmentType@Department",
+						"     && pivot1@Month == DepartmentType@Month,",
+						"     multiple: true,",
+						"     broadcast: 'auto')~> lookup1",
+						"lookup1 derive(Revenue = toDouble(Revenue),",
+						"          Target_Value = toDouble(Target_Value),",
+						"          Deals_Closed = toDouble(Deals_Closed),",
+						"          Leads_Generated = toInteger(Leads_Generated),",
+						"          Campaign_ROI = toDouble(Campaign_ROI)) ~> NormalizeNumericDataType",
+						"NormalizeNumericDataType derive(RevenueVsTarget = case(\r",
+						"    !isNull(Revenue) && !isNull(Target_Value) && Target_Type == 'Revenue',\r",
+						"    round(toDouble(Revenue) / toDouble(Target_Value), 3),\r",
+						"    toDouble(null())\r",
+						"),",
+						"          LeadsVsTarget = case(\r",
+						"    !isNull(Leads_Generated) && !isNull(Target_Value) && Target_Type == 'Leads_Generated',\r",
+						"    round(toDouble(Leads_Generated) / toDouble(Target_Value), 3),\r",
+						"    toDouble(null())\r",
+						"),",
+						"          ROIVsTarget = case(\r",
+						"    !isNull(Campaign_ROI) && !isNull(Target_Value) && Target_Type == 'Campaign_ROI',\r",
+						"    round(toDouble(Campaign_ROI) / toDouble(Target_Value), 3),\r",
+						"    toDouble(null())\r",
+						"),",
+						"          DealsVsTarget = case(\r",
+						"    !isNull(Deals_Closed) && !isNull(Target_Value) && Target_Type == 'Deals_Closed',\r",
+						"    round(toDouble(Deals_Closed) / toDouble(Target_Value), 3),\r",
+						"    toDouble(null())\r",
+						")) ~> CalculateRatios",
+						"ActiveEmployees derive(FullName = FirstName+ \" \"+LastName) ~> FullName",
+						"CalculateRatios derive(PerformanceScore = round(\r",
+						"    (toDouble(coalesce(RevenueVsTarget, 0)) * 0.5) +\r",
+						"    (toDouble(coalesce(DealsVsTarget, 0)) * 0.3) +\r",
+						"    (toDouble(coalesce(ROIVsTarget, 0)) * 0.2),\r",
+						"3\r",
+						")) ~> PerformanceScore",
+						"PerformanceScore derive(PerformanceLevel = iif(\r",
+						"    PerformanceScore >= 0.50 || (RevenueVsTarget != toDouble(null()) && RevenueVsTarget >= 1.10), 'High',\r",
+						"iif(\r",
+						"    PerformanceScore >= 0.20 && PerformanceScore < 0.50, 'Medium',\r",
+						"'Low'\r",
+						"))) ~> PerformanceLevel",
+						"PerformanceLevel window(desc(PerformanceScore, true),",
+						"     desc(RevenueVsTarget, true),",
+						"     PerformanceRank = rank()) ~> window1",
+						"window1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['PerformanceMatrix'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> Output"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SalesPerformanceDs')]",
+				"[concat(variables('factoryId'), '/datasets/MarketingPerformanceDs')]",
+				"[concat(variables('factoryId'), '/datasets/EmployeeDs')]",
+				"[concat(variables('factoryId'), '/datasets/DepartmentTargetDs')]",
+				"[concat(variables('factoryId'), '/datasets/OutputDs')]"
+			]
+		}
+	]
+}
