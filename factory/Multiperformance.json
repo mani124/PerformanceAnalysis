@@ -1,0 +1,9 @@
+{
+	"name": "Multiperformance",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "da40abf3-991f-4bf9-8d0c-d4b33530c051",
+		"tenantId": "c04855cc-7b57-4097-85a8-1e4c0b641978"
+	}
+}

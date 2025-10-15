@@ -1,0 +1,204 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "SalesPerformanceDs",
+						"type": "DatasetReference"
+					},
+					"name": "SlaesPerformance"
+				},
+				{
+					"dataset": {
+						"referenceName": "MarketingPerformanceDs",
+						"type": "DatasetReference"
+					},
+					"name": "MarketingPerformance"
+				},
+				{
+					"dataset": {
+						"referenceName": "EmployeeDs",
+						"type": "DatasetReference"
+					},
+					"name": "Employee"
+				},
+				{
+					"dataset": {
+						"referenceName": "DepartmentTargetDs",
+						"type": "DatasetReference"
+					},
+					"name": "DepartmentType"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "OutputDs",
+						"type": "DatasetReference"
+					},
+					"name": "Output"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CombineData"
+				},
+				{
+					"name": "EmployeeDetails"
+				},
+				{
+					"name": "ActiveEmployees"
+				},
+				{
+					"name": "pivot1"
+				},
+				{
+					"name": "MapDrifted1",
+					"description": "Creates an explicit mapping for each drifted column"
+				},
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "NormalizeNumericDataType"
+				},
+				{
+					"name": "CalculateRatios"
+				},
+				{
+					"name": "FullName"
+				},
+				{
+					"name": "PerformanceScore"
+				},
+				{
+					"name": "PerformanceLevel"
+				},
+				{
+					"name": "window1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          EmployeeID as string,",
+				"          Month as string,",
+				"          Metric as string,",
+				"          Value as decimal(10,0),",
+				"          Department as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> SlaesPerformance",
+				"source(output(",
+				"          EmployeeID as string,",
+				"          Month as string,",
+				"          Metric as string,",
+				"          Value as decimal(10,0),",
+				"          Department as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> MarketingPerformance",
+				"source(output(",
+				"          EmployeeID as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          HireDate as string,",
+				"          Status as string,",
+				"          ManagerID as string,",
+				"          Location as string,",
+				"          Department as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Employee",
+				"source(output(",
+				"          Department as string,",
+				"          Month as string,",
+				"          Target_Type as string,",
+				"          Target_Value as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DepartmentType",
+				"SlaesPerformance, MarketingPerformance union(byName: true)~> CombineData",
+				"CombineData, Employee lookup(CombineData@EmployeeID == Employee@EmployeeID,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> EmployeeDetails",
+				"EmployeeDetails filter(Status=='Active') ~> ActiveEmployees",
+				"FullName pivot(groupBy(CombineData@EmployeeID,",
+				"          FullName,",
+				"          CombineData@Department,",
+				"          Month),",
+				"     pivotBy(Metric),",
+				"     {} = sum(Value),",
+				"     columnNaming: '$N$V',",
+				"     lateral: true) ~> pivot1",
+				"pivot1 derive(Calls_Made = toDecimal(byName('Calls_Made')),",
+				"          Campaign_ROI = toDecimal(byName('Campaign_ROI')),",
+				"          Content_Created = toDecimal(byName('Content_Created')),",
+				"          Deals_Closed = toDecimal(byName('Deals_Closed')),",
+				"          Leads_Generated = toDecimal(byName('Leads_Generated')),",
+				"          Revenue = toDecimal(byName('Revenue'))) ~> MapDrifted1",
+				"MapDrifted1, DepartmentType lookup(pivot1@Department == DepartmentType@Department",
+				"     && pivot1@Month == DepartmentType@Month,",
+				"     multiple: true,",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1 derive(Revenue = toDouble(Revenue),",
+				"          Target_Value = toDouble(Target_Value),",
+				"          Deals_Closed = toDouble(Deals_Closed),",
+				"          Leads_Generated = toInteger(Leads_Generated),",
+				"          Campaign_ROI = toDouble(Campaign_ROI)) ~> NormalizeNumericDataType",
+				"NormalizeNumericDataType derive(RevenueVsTarget = case(\r",
+				"    !isNull(Revenue) && !isNull(Target_Value) && Target_Type == 'Revenue',\r",
+				"    round(toDouble(Revenue) / toDouble(Target_Value), 3),\r",
+				"    toDouble(null())\r",
+				"),",
+				"          LeadsVsTarget = case(\r",
+				"    !isNull(Leads_Generated) && !isNull(Target_Value) && Target_Type == 'Leads_Generated',\r",
+				"    round(toDouble(Leads_Generated) / toDouble(Target_Value), 3),\r",
+				"    toDouble(null())\r",
+				"),",
+				"          ROIVsTarget = case(\r",
+				"    !isNull(Campaign_ROI) && !isNull(Target_Value) && Target_Type == 'Campaign_ROI',\r",
+				"    round(toDouble(Campaign_ROI) / toDouble(Target_Value), 3),\r",
+				"    toDouble(null())\r",
+				"),",
+				"          DealsVsTarget = case(\r",
+				"    !isNull(Deals_Closed) && !isNull(Target_Value) && Target_Type == 'Deals_Closed',\r",
+				"    round(toDouble(Deals_Closed) / toDouble(Target_Value), 3),\r",
+				"    toDouble(null())\r",
+				")) ~> CalculateRatios",
+				"ActiveEmployees derive(FullName = FirstName+ \" \"+LastName) ~> FullName",
+				"CalculateRatios derive(PerformanceScore = round(\r",
+				"    (toDouble(coalesce(RevenueVsTarget, 0)) * 0.5) +\r",
+				"    (toDouble(coalesce(DealsVsTarget, 0)) * 0.3) +\r",
+				"    (toDouble(coalesce(ROIVsTarget, 0)) * 0.2),\r",
+				"3\r",
+				")) ~> PerformanceScore",
+				"PerformanceScore derive(PerformanceLevel = iif(\r",
+				"    PerformanceScore >= 0.50 || (RevenueVsTarget != toDouble(null()) && RevenueVsTarget >= 1.10), 'High',\r",
+				"iif(\r",
+				"    PerformanceScore >= 0.20 && PerformanceScore < 0.50, 'Medium',\r",
+				"'Low'\r",
+				"))) ~> PerformanceLevel",
+				"PerformanceLevel window(desc(PerformanceScore, true),",
+				"     desc(RevenueVsTarget, true),",
+				"     PerformanceRank = rank()) ~> window1",
+				"window1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['PerformanceMatrix'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> Output"
+			]
+		}
+	}
+}
